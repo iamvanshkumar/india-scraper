@@ -4,7 +4,7 @@ services:
   scraper:
     build: .
     ports:
-      - "8501:8501"
+      - "3006:8501"
     volumes:
       - ./filings:/app/filings
     environment:

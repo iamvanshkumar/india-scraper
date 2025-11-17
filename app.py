@@ -231,18 +231,58 @@ if st.sidebar.button("Start Scraping"):
         driver.quit()
 
         # ------------------ DISPLAY ------------------
+        if not results:
+            st.error("No data collected")
+            st.stop()
+
+        # Create display dataframe with formatted data
+        display_data = []
         for r in results:
-            r["People"] = json.dumps(r["People"])
-            r["Filing History"] = json.dumps(r["Filing History"], ensure_ascii=False)
+            display_row = {
+                "Company Name": r["Company Name"],
+                "Company Number": r["Company Number"],
+                "Address (Search)": r["Address (Search)"],
+                "Registered Office": r["Registered Office"],
+                "Company Status": r["Company Status"],
+                "Company Type": r["Company Type"],
+                "Incorporation Date": r["Incorporation Date"],
+                "Officers Count": len(r["People"]),
+                "Filings Count": len(r["Filing History"]),
+                "People": json.dumps(r["People"], ensure_ascii=False),
+                "Filing History": json.dumps(r["Filing History"], ensure_ascii=False)
+            }
+            display_data.append(display_row)
 
-        df = pd.DataFrame(results)
-        st.success(f"Done! {len(df)} companies scraped")
-        st.dataframe(df, use_container_width=True)
+        df = pd.DataFrame(display_data)
+        
+        st.success(f"✅ Done! {len(df)} companies scraped")
+        st.write(f"**Total Companies:** {len(df)}")
+        st.write(f"**Total Officers:** {sum(len(r['People']) for r in results)}")
+        st.write(f"**Total Filings:** {sum(len(r['Filing History']) for r in results)}")
+        
+        # Show preview
+        st.subheader("Preview (first 10 rows)")
+        preview_cols = ["Company Name", "Company Number", "Company Status", "Officers Count", "Filings Count"]
+        st.dataframe(df[preview_cols].head(10), use_container_width=True)
 
-        csv = df.to_csv(index=False).encode()
-        st.download_button("Download CSV", csv, f"india_companies_{len(df)}.csv", "text/csv")
+        # Generate CSV
+        csv_data = df.to_csv(index=False).encode('utf-8')
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        csv_filename = f"india_companies_{len(df)}_{timestamp}.csv"
+        
+        st.download_button(
+            label="📥 Download Full CSV",
+            data=csv_data,
+            file_name=csv_filename,
+            mime="text/csv",
+            key="download_csv"
+        )
 
-        st.info(f"PDFs saved to: `{filings_dir.resolve()}`")
+        st.info(f"📁 PDFs saved to: `{filings_dir.resolve()}`")
+        
+        # Show full data in expander
+        with st.expander("View Full Data Table"):
+            st.dataframe(df, use_container_width=True)
 
 st.markdown("---")
 st.caption("Docker-ready • Chrome 129 • Fixed all errors • Nov 17, 2025")
